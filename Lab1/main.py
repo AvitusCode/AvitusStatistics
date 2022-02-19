@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norminvgauss, uniform, cauchy, poisson
 
-# Instructions for library scipy at https://docs.scipy.org/doc/scipy/reference/stats.html
+# Instructions and code examples captured from library scipy at https://docs.scipy.org/doc/scipy/reference/stats.html
 
 
 def normalDistribution(selections, a, b):
