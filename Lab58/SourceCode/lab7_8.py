@@ -2,11 +2,12 @@ import math
 
 import numpy as np
 import scipy.stats as stats
+import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 # для двух случаев меняем промежутки и размер
 A, B = -1.5, 1.5
-SIZE = 20
+SIZE = 100
 ALPHA = 0.05
 GAMMA = 0.95
 K = 5
@@ -75,42 +76,73 @@ def make_table(chi2, borders, prob, quants):
     return tabulate(rows, head, tablefmt='latex_raw')
 
 
-# For interval estimates
-def interval_check():
-    sz = 100
-    sample = np.random.normal(0, 1, size=sz)
-    x_m = np.mean(sample)
-    x_d = np.std(sample)
-
-    x_moment = stats.moment(sample, moment=4)
-    e = x_moment / (x_d**4) - 3
-    U = np.quantile(sample, 1-ALPHA/2) * np.sqrt((e + 2) / sz)
-    a1s = x_d / np.sqrt(1 + U)
-    b1s = x_d / np.sqrt(1 - U)
-    a1m = x_m - x_d * np.quantile(sample, 1-ALPHA/2) / np.sqrt(sz)
-    b1m = x_m + x_d * np.quantile(sample, 1-ALPHA/2) / np.sqrt(sz)
-
-    print('Asymptotic interval for m ', np.around(a1m, decimals=2), ' ',
-          np.around(b1m, decimals=2))
-    print('Asymptotic interval for sigma ', np.around(a1s, decimals=2), ' ',
-          np.around(b1s, decimals=2))
-
-    temp = stats.norm.interval(alpha=1-ALPHA, loc=x_m, scale=x_d / np.sqrt(sz))
-    print('Teor for m ', temp)
-
-    a2s = x_d * np.sqrt(sz) / np.sqrt(stats.chi2.ppf(1-ALPHA/2, sz - 1))
-    b2s = x_d * np.sqrt(sz) / np.sqrt(stats.chi2.ppf(ALPHA/2, sz - 1))
-    print('Teor for sigma ', a2s, ' ', b2s)
-
-
-def main():
-    interval_check()
-    sample = np.random.normal(0, 1, size=SIZE)
+# For lab 7
+def do_something(sample):
     mu, sigma = ms(sample)
     chi2, borders, prob, quant = chi2_quantile(mu, sigma, sample)
 
     print('mu = ', np.around(mu, decimals=2), " sigma = ", np.around(sigma, decimals=2))
     print(make_table(chi2, borders, prob, quant))
+
+
+# For interval estimates (lab 8)
+def interval_mean(sample):
+    x_mean = np.mean(sample)
+    std = np.std(sample)
+    st = stats.t.ppf(1 - ALPHA / 2, SIZE - 1)
+
+    return [x_mean - std * st / (SIZE - 1) ** 0.5, x_mean + std * st / (SIZE - 1) ** 0.5]
+
+
+def interval_sigma(sample):
+    std = np.std(sample)
+    chi_left = stats.chi2.ppf(1 - ALPHA / 2, SIZE - 1)
+    chi_right = stats.chi2.ppf(ALPHA / 2, SIZE - 1)
+
+    return [std * (SIZE ** 0.5) / (chi_left ** 0.5), std * (SIZE ** 0.5) / (chi_right ** 0.5)]
+
+
+def interval_asy_mean(sample):
+    x_mean = np.mean(sample)
+    std = np.std(sample)
+    u = stats.norm.ppf(1 - ALPHA / 2)
+
+    return [x_mean - std * u / (SIZE ** 0.5), x_mean + std * u / (SIZE ** 0.5)]
+
+
+def interval_asy_sigma(sample):
+    std = np.std(sample)
+    u = stats.norm.ppf(1 - ALPHA / 2)
+    e = stats.moment(sample, moment=4) / std ** 4 - 3
+    ua = u * (((e + 2) / SIZE) ** 0.5)
+
+    return [std * (1 - 0.5 * ua), std * (1 + 0.5 * ua)]
+
+
+def interval_check(sample, mean, std):
+    print(" n = " + str(SIZE))
+    print("mean = " + str(mean))
+    print("std = " + str(std) + "\n")
+
+    plt.hist(sample, density=True, alpha=0.2)
+    plt.xlabel('x')
+    plt.ylabel('prob')
+    plt.title('n = ' + str(SIZE))
+
+    plt.vlines(mean[0], 0, 1, color='black', label='minE')
+    plt.vlines(mean[1], 0, 1, color='black', label='maxE')
+    plt.vlines(mean[0] - std[1], 0, 1, color='red', label='minE - maxD')
+    plt.vlines(mean[1] + std[1], 0, 1, color='red', label='maxE + maxD')
+
+    plt.legend()
+    plt.show()
+
+
+def main():
+    sample = np.random.normal(0, 1, size=SIZE)
+    interval_check(sample, interval_mean(sample), interval_sigma(sample))
+    interval_check(sample, interval_asy_mean(sample), interval_asy_sigma(sample))
+    # do_something(sample)
 
 
 if __name__ == '__main__':
